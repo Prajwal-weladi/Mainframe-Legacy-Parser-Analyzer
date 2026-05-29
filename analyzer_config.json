@@ -1,0 +1,11 @@
+{
+  "source_directory": "sample_repo/all_codes_demo/All codes demo",
+  "zip_path": "sample_repo/All codes demo.zip",
+  "output_dir": "output",
+  "output_markdown": "workspace_comprehension.md",
+  "output_pdf": "workspace_comprehension.pdf",
+  "ollama": {
+    "url": "http://localhost:11434",
+    "model": "llama3.2"
+  }
+}

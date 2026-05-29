@@ -20,16 +20,13 @@ def main():
         print(f"Error: Source file '{args.source}' not found.")
         return
 
-    print("======================================================================")
-    print("               COBOL PARSER, RELATIONSHIP & TAINT ENGINE              ")
-    print("======================================================================")
+    print("   COBOL PARSER, RELATIONSHIP & TAINT ENGINE    ")
     print(f"[*] Target COBOL Source : {args.source}")
     print(f"[*] Copybook Directory  : {args.copybook_dir or 'None (Working Storage only)'}")
     print(f"[*] Output Documentation : {args.output_doc}")
     print(f"[*] Output Metadata JSON: {args.output_json}")
     print(f"[*] Ollama API Endpoint : {args.ollama_url}")
     print(f"[*] Ollama Model Target : {args.ollama_model}")
-    print("----------------------------------------------------------------------")
 
     # Step 1: Parse
     print("[1/4] Parsing source code and resolving copybook expansions...")

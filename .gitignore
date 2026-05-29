@@ -88,3 +88,82 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+./evals
+./golden_dataset.json
+./e2e_dataset.csv
+./eval_results.csv
+./e2e_results.csv
+
+# ============================================
+# Node.js / Frontend (React + Vite)
+# ============================================
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Production Build
+frontend/dist/
+frontend/build/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Cache
+.npm
+.eslintcache
+.stylelintcache
+.cache/
+.parcel-cache
+
+# Env files (Node)
+.env
+
+# ============================================
+# IDE / Editors
+# ============================================
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace

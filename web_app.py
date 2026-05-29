@@ -10,6 +10,7 @@ from cobol_parser import COBOLParser
 from analyzer import COBOLAnalyzer
 from doc_generator import COBOLDocumentationGenerator
 from pdf_converter import COBOLPDFConverter
+from workspace_analyzer import WorkspaceAnalyzer
 
 app = FastAPI(title="COBOL Analyst Web Service", version="1.0.0")
 
@@ -168,6 +169,73 @@ async def analyze_cobol_quick(
         format=format
     )
 
+@app.post("/analyze-workspace")
+async def analyze_workspace(
+    background_tasks: BackgroundTasks,
+    zip_file: UploadFile = File(...),
+    ollama_model: str = Form("skip"),
+    ollama_url: str = Form("http://localhost:11434"),
+    format: str = Form("pdf") # "pdf" or "markdown"
+):
+    """
+    Analyzes an uploaded workspace ZIP archive. Captures file relationships,
+    creates component diagrams, and outputs a detailed markdown or PDF report.
+    """
+    print(f"[*] Received request to analyze workspace ZIP: {zip_file.filename}")
+    print(f"[*] Ollama Target model: {ollama_model} @ {ollama_url}")
+    print(f"[*] Output Format: {format}")
+
+    # Create a unique session folder inside temp_workspaces
+    session_id = str(uuid.uuid4())
+    session_dir = os.path.join(WORKSPACE_TEMP, session_id)
+    os.makedirs(session_dir, exist_ok=True)
+    
+    # Register cleanup
+    background_tasks.add_task(cleanup_directory, session_dir)
+
+    try:
+        # Save ZIP file
+        zip_path = os.path.join(session_dir, "workspace.zip")
+        with open(zip_path, "wb") as f:
+            f.write(await zip_file.read())
+        print(f"[+] Saved zip file to {zip_path}")
+        
+        # Instantiate and run analyzer
+        analyzer = WorkspaceAnalyzer()
+        analyzer.zip_path = zip_path
+        analyzer.source_dir = os.path.join(session_dir, "extracted_sources")
+        analyzer.output_dir = session_dir
+        analyzer.output_md = os.path.join(session_dir, "workspace_comprehension.md")
+        analyzer.output_pdf = os.path.join(session_dir, "workspace_comprehension.pdf")
+        analyzer.ollama_config = {"url": ollama_url, "model": ollama_model}
+        
+        success = analyzer.run()
+        if not success:
+            raise HTTPException(status_code=500, detail="Workspace parser failed to execute successfully.")
+
+        if format.lower() == "markdown":
+            if not os.path.exists(analyzer.output_md):
+                raise HTTPException(status_code=500, detail="Failed to locate generated markdown file.")
+            return FileResponse(
+                path=analyzer.output_md,
+                filename="workspace_comprehension.md",
+                media_type="text/markdown"
+            )
+        else:
+            if not os.path.exists(analyzer.output_pdf):
+                raise HTTPException(status_code=500, detail="Failed to compile HTML/Markdown into PDF.")
+            return FileResponse(
+                path=analyzer.output_pdf,
+                filename="workspace_comprehension.pdf",
+                media_type="application/pdf"
+            )
+
+    except Exception as e:
+        cleanup_directory(session_dir)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Workspace analysis crashed: {str(e)}")
+
 @app.get("/", response_class=HTMLResponse)
 async def get_dashboard():
     """Returns a highly premium, animated drag-and-drop web dashboard."""
@@ -250,7 +318,7 @@ async def get_dashboard():
 
         header {
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 25px;
         }
 
         header h1 {
@@ -267,6 +335,45 @@ async def get_dashboard():
             color: var(--text-secondary);
             font-size: 1rem;
             font-weight: 300;
+        }
+
+        /* Tab Styles */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 25px;
+            gap: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 10px 5px;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary);
         }
 
         /* Config fields */
@@ -567,6 +674,12 @@ async def get_dashboard():
             <p>Static Analysis, PII Taint Propagation, and Premium Documentation PDF Generator</p>
         </header>
 
+        <!-- Tabs -->
+        <div class="tab-bar">
+            <button class="tab-btn active" id="tabSingle" onclick="switchTab('single')">Single File Analysis</button>
+            <button class="tab-btn" id="tabWorkspace" onclick="switchTab('workspace')">Workspace ZIP Analysis</button>
+        </div>
+
         <!-- Error banner -->
         <div class="error-banner" id="errorBanner">
             <span id="errorText">An error occurred during analysis.</span>
@@ -577,7 +690,7 @@ async def get_dashboard():
         <div class="config-row">
             <div class="form-group">
                 <label for="modelInput">Ollama Model</label>
-                <input type="text" id="modelInput" value="llama3.2:latest" placeholder="e.g. llama3.2:latest">
+                <input type="text" id="modelInput" value="skip" placeholder="e.g. skip or llama3.2">
             </div>
             <div class="form-group">
                 <label for="urlInput">Ollama URL Host</label>
@@ -585,8 +698,8 @@ async def get_dashboard():
             </div>
         </div>
 
-        <!-- File Upload Section -->
-        <div class="upload-section">
+        <!-- File Upload Section for Single File -->
+        <div class="upload-section" id="sectionSingle">
             <div class="form-group">
                 <label>Upload Source Code & Copybooks</label>
                 <div class="drop-zone" id="dropZone" onclick="triggerFileInput()">
@@ -600,6 +713,24 @@ async def get_dashboard():
                     <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(event)">
                 </div>
                 <div class="file-list" id="fileList"></div>
+            </div>
+        </div>
+
+        <!-- File Upload Section for Workspace ZIP -->
+        <div class="upload-section" id="sectionWorkspace" style="display: none;">
+            <div class="form-group">
+                <label>Upload Workspace ZIP Archive</label>
+                <div class="drop-zone" id="dropZoneWorkspace" onclick="triggerWorkspaceFileInput()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p>Drag and drop workspace ZIP here, or click to browse</p>
+                    <span>Upload a single ZIP archive (.zip) containing folders of cobol, jcl, bms, asm, etc.</span>
+                    <input type="file" id="workspaceFileInput" accept=".zip" style="display: none;" onchange="handleWorkspaceFileSelect(event)">
+                </div>
+                <div class="file-list" id="workspaceFileList"></div>
             </div>
         </div>
 
@@ -617,19 +748,34 @@ async def get_dashboard():
     </div>
 
     <script>
+        let activeTab = 'single';
         let mainSourceFile = null;
         let copybooksList = [];
+        let workspaceZipFile = null;
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
+        const dropZoneWorkspace = document.getElementById('dropZoneWorkspace');
+        const workspaceFileInput = document.getElementById('workspaceFileInput');
+        const workspaceFileList = document.getElementById('workspaceFileList');
+        
         const statusOverlay = document.getElementById('statusOverlay');
         const statusText = document.getElementById('statusText');
         const statusSubtext = document.getElementById('statusSubtext');
         const errorBanner = document.getElementById('errorBanner');
         const errorText = document.getElementById('errorText');
 
-        // Drag and drop event handlers
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('tabSingle').classList.toggle('active', tab === 'single');
+            document.getElementById('tabWorkspace').classList.toggle('active', tab === 'workspace');
+            document.getElementById('sectionSingle').style.display = tab === 'single' ? 'block' : 'none';
+            document.getElementById('sectionWorkspace').style.display = tab === 'workspace' ? 'block' : 'none';
+            hideError();
+        }
+
+        // Drag and drop event handlers for single file
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, highlight, false);
         });
@@ -672,12 +818,10 @@ async def get_dashboard():
                 const ext = filename.split('.').pop().toLowerCase();
                 
                 if (ext === 'cpy' || (mainSourceFile !== null && ext === 'txt')) {
-                    // It's a copybook
                     if (!copybooksList.some(f => f.name === file.name)) {
                         copybooksList.push(file);
                     }
                 } else if (ext === 'cbl' || ext === 'cob' || mainSourceFile === null) {
-                    // Set as main source code file
                     mainSourceFile = file;
                 }
             }
@@ -726,6 +870,66 @@ async def get_dashboard():
             });
         }
 
+        // Drag and drop event handlers for workspace zip
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZoneWorkspace.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropZoneWorkspace.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZoneWorkspace.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropZoneWorkspace.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZoneWorkspace.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZoneWorkspace.classList.remove('dragover');
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                workspaceZipFile = files[0];
+                updateWorkspaceFileListView();
+            }
+        }, false);
+
+        function triggerWorkspaceFileInput() {
+            workspaceFileInput.click();
+        }
+
+        function handleWorkspaceFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                workspaceZipFile = files[0];
+                updateWorkspaceFileListView();
+            }
+        }
+
+        function removeWorkspaceFile() {
+            workspaceZipFile = null;
+            updateWorkspaceFileListView();
+        }
+
+        function updateWorkspaceFileListView() {
+            workspaceFileList.innerHTML = '';
+            if (workspaceZipFile) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div class="file-item-left">
+                        <span class="file-item-badge">WORKSPACE ZIP</span>
+                        <strong>${workspaceZipFile.name}</strong>
+                        <span>(${(workspaceZipFile.size/1024).toFixed(1)} KB)</span>
+                    </div>
+                    <span class="remove-file" onclick="removeWorkspaceFile()">×</span>
+                `;
+                workspaceFileList.appendChild(item);
+            }
+        }
+
         function hideError() {
             errorBanner.style.display = 'none';
         }
@@ -737,39 +941,61 @@ async def get_dashboard():
 
         async function submitAnalysis(formatType) {
             hideError();
-            if (!mainSourceFile) {
-                showError("Please upload a main COBOL source file (.cbl, .cob) first.");
-                return;
+            if (activeTab === 'single') {
+                if (!mainSourceFile) {
+                    showError("Please upload a main COBOL source file (.cbl, .cob) first.");
+                    return;
+                }
+            } else {
+                if (!workspaceZipFile) {
+                    showError("Please upload a workspace ZIP archive (.zip) first.");
+                    return;
+                }
             }
 
             const model = document.getElementById('modelInput').value.trim();
             const hostUrl = document.getElementById('urlInput').value.trim();
 
-            // Show Loading Spinner
             statusOverlay.classList.add('active');
-            statusText.textContent = "Uploading source & copybooks...";
-            statusSubtext.textContent = "Moving files to session workspace...";
 
+            let url = "/analyze";
             const formData = new FormData();
-            formData.append("source_file", mainSourceFile);
             
-            copybooksList.forEach(file => {
-                formData.append("copybooks", file);
-            });
-            
-            formData.append("ollama_model", model);
-            formData.append("ollama_url", hostUrl);
-            formData.append("format", formatType);
+            if (activeTab === 'single') {
+                statusText.textContent = "Uploading source & copybooks...";
+                statusSubtext.textContent = "Moving files to session workspace...";
+                formData.append("source_file", mainSourceFile);
+                copybooksList.forEach(file => {
+                    formData.append("copybooks", file);
+                });
+                formData.append("ollama_model", model);
+                formData.append("ollama_url", hostUrl);
+                formData.append("format", formatType);
+            } else {
+                statusText.textContent = "Uploading workspace ZIP...";
+                statusSubtext.textContent = "Extracting files to session workspace...";
+                url = "/analyze-workspace";
+                formData.append("zip_file", workspaceZipFile);
+                formData.append("ollama_model", model);
+                formData.append("ollama_url", hostUrl);
+                formData.append("format", formatType);
+            }
 
-            // Periodically update loading text to enhance user feedback
             let progressIndex = 0;
-            const progressSteps = [
+            const progressSteps = activeTab === 'single' ? [
                 { text: "Parsing COBOL logic...", sub: "Expanding copybooks and identifying variables..." },
                 { text: "Analyzing structures...", sub: "Detecting SQL queries, IMS calls, CICS commands, and VSAM..." },
                 { text: "Taint Analysis...", sub: "Tracing PII elements and data flows across paragraphs..." },
                 { text: "Querying Ollama...", sub: "Generating technical program narratives (this might take 30-90s)..." },
                 { text: "Compiling Report...", sub: "Rendering HTML layouts and injecting premium print CSS..." },
                 { text: "Generating PDF...", sub: "Writing PDF binary stream (almost ready)..." }
+            ] : [
+                { text: "Extracting Workspace ZIP...", sub: "Cataloging JCL, COBOL, BMS, CSD, and Assembler files..." },
+                { text: "Parsing Source Components...", sub: "Parsing copybook copy statements and execution steps..." },
+                { text: "Resolving Relationships...", sub: "Linking JCL jobs to COBOL program select statements..." },
+                { text: "Querying Ollama...", sub: "Generating system documentation and algorithms (this might take 30-90s)..." },
+                { text: "Compiling Workspace Report...", sub: "Rendering component & flow diagrams with print CSS..." },
+                { text: "Generating PDF...", sub: "Writing workspace PDF binary stream (almost ready)..." }
             ];
 
             const progressInterval = setInterval(() => {
@@ -781,7 +1007,7 @@ async def get_dashboard():
             }, 6000);
 
             try {
-                const response = await fetch("/analyze", {
+                const response = await fetch(url, {
                     method: "POST",
                     body: formData
                 });
@@ -796,15 +1022,16 @@ async def get_dashboard():
                 statusText.textContent = "Downloading report...";
                 statusSubtext.textContent = "Completed successfully!";
 
-                // Receive binary blob file
                 const blob = await response.blob();
                 const downloadUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = downloadUrl;
                 
-                // Set name based on source filename
-                const baseName = mainSourceFile.name.substring(0, mainSourceFile.name.lastIndexOf('.')) || "COBOL_Report";
-                a.download = `${baseName}_documentation.${formatType === 'pdf' ? 'pdf' : 'md'}`;
+                const baseName = activeTab === 'single' ? 
+                    (mainSourceFile.name.substring(0, mainSourceFile.name.lastIndexOf('.')) || "COBOL_Report") :
+                    "Workspace_Comprehension";
+                    
+                a.download = `${baseName}.${formatType === 'pdf' ? 'pdf' : 'md'}`;
                 
                 document.body.appendChild(a);
                 a.click();

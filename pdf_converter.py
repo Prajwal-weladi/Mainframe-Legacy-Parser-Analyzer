@@ -153,9 +153,30 @@ class COBOLPDFConverter:
 </html>
 """
 
+        # Custom link callback to resolve image paths on Windows
+        def link_callback(uri, rel):
+            import urllib.parse
+            # Convert URI to local filename
+            if uri.startswith("file:///"):
+                decoded_uri = urllib.parse.unquote(uri[8:])
+                path = os.path.normpath(decoded_uri)
+            elif uri.startswith("file:/"):
+                decoded_uri = urllib.parse.unquote(uri[6:])
+                path = os.path.normpath(decoded_uri)
+            else:
+                decoded_uri = urllib.parse.unquote(uri)
+                path = os.path.abspath(decoded_uri)
+                if not os.path.exists(path):
+                    path = os.path.abspath(os.path.join("output", decoded_uri))
+            
+            if os.path.exists(path):
+                return path
+            print(f"Warning: link_callback could not resolve path: {uri} (looked at: {path})")
+            return uri
+
         # xhtml2pdf expects a destination file handle
         with open(output_pdf_path, "wb") as pdf_file:
-            # Renders HTML to PDF
-            pisa_status = pisa.CreatePDF(html_document, dest=pdf_file)
+            # Renders HTML to PDF with link_callback
+            pisa_status = pisa.CreatePDF(html_document, dest=pdf_file, link_callback=link_callback)
             
         return not pisa_status.err
