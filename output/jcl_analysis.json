@@ -1,0 +1,93 @@
+{
+  "file_name": "CBEXPORT.jcl",
+  "job_name": "CBEXPORT",
+  "steps": [
+    {
+      "step_name": "STEP01",
+      "program": "IDCAMS",
+      "dds": [
+        {
+          "dd_name": "SYSPRINT",
+          "dsn": "SYSOUT",
+          "disp": "SHR",
+          "raw_params": "SYSOUT=*"
+        },
+        {
+          "dd_name": "SYSIN",
+          "dsn": "SYSOUT",
+          "disp": "SHR",
+          "raw_params": "*"
+        }
+      ],
+      "cond": null
+    },
+    {
+      "step_name": "STEP02",
+      "program": "CBEXPORT",
+      "dds": [
+        {
+          "dd_name": "STEPLIB",
+          "dsn": "AWS.M2.CARDDEMO.LOADLIB",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.LOADLIB"
+        },
+        {
+          "dd_name": "CUSTFILE",
+          "dsn": "AWS.M2.CARDDEMO.CUSTDATA.VSAM.KSDS",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.CUSTDATA.VSAM.KSDS"
+        },
+        {
+          "dd_name": "ACCTFILE",
+          "dsn": "AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS"
+        },
+        {
+          "dd_name": "XREFFILE",
+          "dsn": "AWS.M2.CARDDEMO.CARDXREF.VSAM.KSDS",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.CARDXREF.VSAM.KSDS"
+        },
+        {
+          "dd_name": "TRANSACT",
+          "dsn": "AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS"
+        },
+        {
+          "dd_name": "CARDFILE",
+          "dsn": "AWS.M2.CARDDEMO.CARDDATA.VSAM.KSDS",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.CARDDATA.VSAM.KSDS"
+        },
+        {
+          "dd_name": "EXPFILE",
+          "dsn": "AWS.M2.CARDDEMO.EXPORT.DATA",
+          "disp": "SHR",
+          "raw_params": "DISP=SHR, DSN=AWS.M2.CARDDEMO.EXPORT.DATA"
+        },
+        {
+          "dd_name": "SYSOUT",
+          "dsn": "SYSOUT",
+          "disp": "SHR",
+          "raw_params": "SYSOUT=*"
+        },
+        {
+          "dd_name": "SYSPRINT",
+          "dsn": "SYSOUT",
+          "disp": "SHR",
+          "raw_params": "SYSOUT=*"
+        }
+      ],
+      "cond": null
+    }
+  ],
+  "includes": [],
+  "jcllibs": [],
+  "steplibs": [
+    "AWS.M2.CARDDEMO.LOADLIB"
+  ],
+  "job_cond": null,
+  "conditionals": []
+}

@@ -11,6 +11,8 @@ from src.analyzer import COBOLAnalyzer
 from src.doc_generator import COBOLDocumentationGenerator
 from src.pdf_converter import COBOLPDFConverter
 from src.workspace_analyzer import WorkspaceAnalyzer
+from src.jcl_parser import JCLParser
+from src.jcl_doc_generator import JCLDocumentationGenerator
 
 app = FastAPI(title="COBOL Analyst Web Service", version="1.0.0")
 
@@ -165,6 +167,88 @@ async def analyze_cobol_quick(
         background_tasks=background_tasks,
         source_file=source_file,
         copybooks=copybooks,
+        ollama_model=ollama_model,
+        ollama_url=ollama_url,
+        format=format
+    )
+
+async def run_jcl_analysis_pipeline(
+    background_tasks: BackgroundTasks,
+    source_file: UploadFile,
+    ollama_model: str,
+    ollama_url: str,
+    format: str
+):
+    print(f"[*] Received JCL analysis request for file: {source_file.filename}")
+    print(f"[*] Ollama Target model: {ollama_model} @ {ollama_url}")
+    print(f"[*] Output Format: {format}")
+
+    session_id = str(uuid.uuid4())
+    session_dir = os.path.join(WORKSPACE_TEMP, session_id)
+    os.makedirs(session_dir, exist_ok=True)
+    background_tasks.add_task(cleanup_directory, session_dir)
+
+    try:
+        source_path = os.path.join(session_dir, source_file.filename)
+        with open(source_path, "wb") as f:
+            f.write(await source_file.read())
+        print(f"[+] Saved source file to {source_path}")
+
+        parser = JCLParser()
+        metadata = parser.parse(source_path)
+
+        doc_gen = JCLDocumentationGenerator(
+            metadata=metadata,
+            ollama_url=ollama_url,
+            ollama_model=ollama_model,
+            output_dir=session_dir
+        )
+        markdown_doc = doc_gen.generate_documentation()
+
+        if format.lower() == "markdown":
+            output_md_path = os.path.join(session_dir, "documentation.md")
+            with open(output_md_path, "w", encoding="utf-8") as f:
+                f.write(markdown_doc)
+            return FileResponse(
+                path=output_md_path,
+                filename=f"{metadata['job_name']}_modernization.md",
+                media_type="text/markdown"
+            )
+        else:
+            output_pdf_path = os.path.join(session_dir, "documentation.pdf")
+            pdf_converter = COBOLPDFConverter()
+            success = pdf_converter.convert_markdown_to_pdf(markdown_doc, output_pdf_path)
+            
+            if not success or not os.path.exists(output_pdf_path):
+                raise HTTPException(status_code=500, detail="Failed to compile HTML/Markdown into JCL PDF.")
+
+            return FileResponse(
+                path=output_pdf_path,
+                filename=f"{metadata['job_name']}_modernization.pdf",
+                media_type="application/pdf"
+            )
+
+    except Exception as e:
+        cleanup_directory(session_dir)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"JCL analysis pipeline crashed: {str(e)}")
+
+@app.post("/analyze-jcl")
+async def analyze_jcl(
+    background_tasks: BackgroundTasks,
+    source_file: UploadFile = File(...),
+    ollama_model: str = Form("skip"),
+    ollama_url: str = Form("http://localhost:11434"),
+    format: str = Form("pdf")
+):
+    """
+    Upload and processing endpoint for JCL files. Parses execution steps,
+    allocations, and outputs a modernization-focused HTML/PDF report.
+    """
+    return await run_jcl_analysis_pipeline(
+        background_tasks=background_tasks,
+        source_file=source_file,
         ollama_model=ollama_model,
         ollama_url=ollama_url,
         format=format
@@ -671,13 +755,14 @@ async def get_dashboard():
         </div>
 
         <header>
-            <h1>COBOL Modern Analyst Dashboard</h1>
+            <h1>Mainframe Modernization Analyst Dashboard</h1>
             <p>Static Analysis, PII Taint Propagation, and Premium Documentation PDF Generator</p>
         </header>
 
         <!-- Tabs -->
         <div class="tab-bar">
-            <button class="tab-btn active" id="tabSingle" onclick="switchTab('single')">Single File Analysis</button>
+            <button class="tab-btn active" id="tabSingle" onclick="switchTab('single')">Single COBOL Analysis</button>
+            <button class="tab-btn" id="tabJcl" onclick="switchTab('jcl')">Single JCL Analysis</button>
             <button class="tab-btn" id="tabWorkspace" onclick="switchTab('workspace')">Workspace ZIP Analysis</button>
         </div>
 
@@ -705,15 +790,33 @@ async def get_dashboard():
                 <label>Upload Source Code & Copybooks</label>
                 <div class="drop-zone" id="dropZone" onclick="triggerFileInput()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     </svg>
                     <p>Drag and drop files here, or click to browse</p>
                     <span>Support .cbl, .cob, .cpy, and .txt files. First file will be treated as main source.</span>
                     <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(event)">
                 </div>
                 <div class="file-list" id="fileList"></div>
+            </div>
+        </div>
+
+        <!-- File Upload Section for Single JCL -->
+        <div class="upload-section" id="sectionJcl" style="display: none;">
+            <div class="form-group">
+                <label>Upload Single JCL File</label>
+                <div class="drop-zone" id="dropZoneJcl" onclick="triggerJclFileInput()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    </svg>
+                    <p>Drag and drop JCL file here, or click to browse</p>
+                    <span>Support .jcl, .job, and .txt files. Only a single file will be analyzed.</span>
+                    <input type="file" id="jclFileInput" style="display: none;" onchange="handleJclFileSelect(event)">
+                </div>
+                <div class="file-list" id="jclFileList"></div>
             </div>
         </div>
 
@@ -752,11 +855,15 @@ async def get_dashboard():
         let activeTab = 'single';
         let mainSourceFile = null;
         let copybooksList = [];
+        let jclFile = null;
         let workspaceZipFile = null;
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
+        const dropZoneJcl = document.getElementById('dropZoneJcl');
+        const jclFileInput = document.getElementById('jclFileInput');
+        const jclFileList = document.getElementById('jclFileList');
         const dropZoneWorkspace = document.getElementById('dropZoneWorkspace');
         const workspaceFileInput = document.getElementById('workspaceFileInput');
         const workspaceFileList = document.getElementById('workspaceFileList');
@@ -770,8 +877,10 @@ async def get_dashboard():
         function switchTab(tab) {
             activeTab = tab;
             document.getElementById('tabSingle').classList.toggle('active', tab === 'single');
+            document.getElementById('tabJcl').classList.toggle('active', tab === 'jcl');
             document.getElementById('tabWorkspace').classList.toggle('active', tab === 'workspace');
             document.getElementById('sectionSingle').style.display = tab === 'single' ? 'block' : 'none';
+            document.getElementById('sectionJcl').style.display = tab === 'jcl' ? 'block' : 'none';
             document.getElementById('sectionWorkspace').style.display = tab === 'workspace' ? 'block' : 'none';
             hideError();
         }
@@ -871,6 +980,66 @@ async def get_dashboard():
             });
         }
 
+        // Drag and drop event handlers for single JCL
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZoneJcl.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropZoneJcl.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZoneJcl.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropZoneJcl.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZoneJcl.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZoneJcl.classList.remove('dragover');
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                jclFile = files[0];
+                updateJclFileListView();
+            }
+        }, false);
+
+        function triggerJclFileInput() {
+            jclFileInput.click();
+        }
+
+        function handleJclFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                jclFile = files[0];
+                updateJclFileListView();
+            }
+        }
+
+        function removeJclFile() {
+            jclFile = null;
+            updateJclFileListView();
+        }
+
+        function updateJclFileListView() {
+            jclFileList.innerHTML = '';
+            if (jclFile) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div class="file-item-left">
+                        <span class="file-item-badge" style="background:var(--accent-rose);">JCL</span>
+                        <strong>${jclFile.name}</strong>
+                        <span>(${(jclFile.size/1024).toFixed(1)} KB)</span>
+                    </div>
+                    <span class="remove-file" onclick="removeJclFile()">×</span>
+                `;
+                jclFileList.appendChild(item);
+            }
+        }
+
         // Drag and drop event handlers for workspace zip
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZoneWorkspace.addEventListener(eventName, e => {
@@ -947,6 +1116,11 @@ async def get_dashboard():
                     showError("Please upload a main COBOL source file (.cbl, .cob) first.");
                     return;
                 }
+            } else if (activeTab === 'jcl') {
+                if (!jclFile) {
+                    showError("Please upload a JCL file (.jcl, .job) first.");
+                    return;
+                }
             } else {
                 if (!workspaceZipFile) {
                     showError("Please upload a workspace ZIP archive (.zip) first.");
@@ -972,6 +1146,14 @@ async def get_dashboard():
                 formData.append("ollama_model", model);
                 formData.append("ollama_url", hostUrl);
                 formData.append("format", formatType);
+            } else if (activeTab === 'jcl') {
+                statusText.textContent = "Uploading JCL source...";
+                statusSubtext.textContent = "Moving file to session workspace...";
+                url = "/analyze-jcl";
+                formData.append("source_file", jclFile);
+                formData.append("ollama_model", model);
+                formData.append("ollama_url", hostUrl);
+                formData.append("format", formatType);
             } else {
                 statusText.textContent = "Uploading workspace ZIP...";
                 statusSubtext.textContent = "Extracting files to session workspace...";
@@ -990,6 +1172,12 @@ async def get_dashboard():
                 { text: "Querying Ollama...", sub: "Generating technical program narratives (this might take 30-90s)..." },
                 { text: "Compiling Report...", sub: "Rendering HTML layouts and injecting premium print CSS..." },
                 { text: "Generating PDF...", sub: "Writing PDF binary stream (almost ready)..." }
+            ] : activeTab === 'jcl' ? [
+                { text: "Parsing JCL Sequence...", sub: "Extracting steps, executed programs, and dataset bindings..." },
+                { text: "Classifying Programs...", sub: "Separating custom programs from standard IBM system utilities..." },
+                { text: "Querying Ollama...", sub: "Generating modernization recommendations & migration blueprints (this might take 30-90s)..." },
+                { text: "Compiling JCL Report...", sub: "Rendering Mermaid flowcharts and mapping Airflow tasks..." },
+                { text: "Generating PDF...", sub: "Writing JCL PDF binary stream (almost ready)..." }
             ] : [
                 { text: "Extracting Workspace ZIP...", sub: "Cataloging JCL, COBOL, BMS, CSD, and Assembler files..." },
                 { text: "Parsing Source Components...", sub: "Parsing copybook copy statements and execution steps..." },
@@ -1030,6 +1218,8 @@ async def get_dashboard():
                 
                 const baseName = activeTab === 'single' ? 
                     (mainSourceFile.name.substring(0, mainSourceFile.name.lastIndexOf('.')) || "COBOL_Report") :
+                    activeTab === 'jcl' ?
+                    (jclFile.name.substring(0, jclFile.name.lastIndexOf('.')) || "JCL_Report") :
                     "Workspace_Comprehension";
                     
                 a.download = `${baseName}.${formatType === 'pdf' ? 'pdf' : 'md'}`;
