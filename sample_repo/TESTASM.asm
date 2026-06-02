@@ -1,6 +1,0 @@
-TESTASM  CSECT
-         ENTRY STARTASM
-STARTASM LA    15,=V(CBACT02C)
-         BALR  14,15
-         COPY  CVACT02Y
-         END

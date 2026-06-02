@@ -3,9 +3,9 @@ import re
 import json
 import zipfile
 import shutil
-from preprocessor import COBOLPreprocessor
-from doc_generator import COBOLDocumentationGenerator
-from pdf_converter import COBOLPDFConverter
+from .preprocessor import COBOLPreprocessor
+from .doc_generator import COBOLDocumentationGenerator
+from .pdf_converter import COBOLPDFConverter
 
 class WorkspaceAnalyzer:
     def __init__(self, config_path="analyzer_config.json"):

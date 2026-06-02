@@ -1,0 +1,672 @@
+{
+  "program_id": "CUSTPROC",
+  "author": "ANTIGRAVITY",
+  "files": [
+    {
+      "variable": "CUSTFILE",
+      "dataset": "VSAM-CUST-FILE"
+    }
+  ],
+  "variables": [
+    {
+      "name": "VSAM-RECORD",
+      "level": 1,
+      "pic": null,
+      "value": null,
+      "section": "FILE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "VSAM-CUST-KEY",
+      "level": 5,
+      "pic": "X(10)",
+      "value": null,
+      "section": "FILE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "VSAM-CUST-DATA",
+      "level": 5,
+      "pic": "X(100)",
+      "value": null,
+      "section": "FILE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "CUSTOMER-RECORD",
+      "level": 1,
+      "pic": null,
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-ID",
+      "level": 5,
+      "pic": "X(10)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-NAME",
+      "level": 5,
+      "pic": "X(30)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-SSN",
+      "level": 5,
+      "pic": "X(9)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-CONTACT",
+      "level": 5,
+      "pic": null,
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-PHONE",
+      "level": 10,
+      "pic": "X(10)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-EMAIL",
+      "level": 10,
+      "pic": "X(40)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-ADDRESS",
+      "level": 5,
+      "pic": null,
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-STREET",
+      "level": 10,
+      "pic": "X(30)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-CITY",
+      "level": 10,
+      "pic": "X(20)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-STATE",
+      "level": 10,
+      "pic": "X(2)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-ZIP",
+      "level": 10,
+      "pic": "X(5)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-ACCOUNT-NUM",
+      "level": 5,
+      "pic": "X(12)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "CUST-BALANCE",
+      "level": 5,
+      "pic": "S9(7)V99",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "CUSTOMER-RECORD"
+    },
+    {
+      "name": "DB-STATUS",
+      "level": 1,
+      "pic": null,
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "SQL-CODE-VAL",
+      "level": 5,
+      "pic": "S9(9)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "IMS-STATUS-CODE",
+      "level": 5,
+      "pic": "X(2)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "IDMS-ERR-CODE",
+      "level": 5,
+      "pic": "X(4)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "MQ-REASON-CODE",
+      "level": 5,
+      "pic": "S9(9)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "VSAM-FEEDBACK",
+      "level": 5,
+      "pic": "X(2)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "ERR-MSG",
+      "level": 5,
+      "pic": "X(80)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": "DB-STATUS"
+    },
+    {
+      "name": "WS-VARIABLES",
+      "level": 1,
+      "pic": null,
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "VSAM-STATUS",
+      "level": 5,
+      "pic": "X(2)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "WS-PII-LOG-SSN",
+      "level": 5,
+      "pic": "X(9)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": true,
+      "source_copybook": null
+    },
+    {
+      "name": "WS-MQ-MSG-BUFF",
+      "level": 5,
+      "pic": "X(200)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "WS-SYS-DATE",
+      "level": 5,
+      "pic": "X(8)",
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "IMS-CONSTANTS",
+      "level": 1,
+      "pic": null,
+      "value": null,
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "IMS-GU",
+      "level": 5,
+      "pic": "X(4)",
+      "value": "GU",
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "IMS-GN",
+      "level": 5,
+      "pic": "X(4)",
+      "value": "GN",
+      "section": "WORKING-STORAGE",
+      "is_pii": false,
+      "source_copybook": null
+    },
+    {
+      "name": "LK-INPUT-DATA",
+      "level": 1,
+      "pic": "X(50)",
+      "value": null,
+      "section": "LINKAGE",
+      "is_pii": false,
+      "source_copybook": null
+    }
+  ],
+  "paragraphs": {
+    "PROC-ENTRY": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 42,
+      "end_line": 53,
+      "content": "    PERFORM B000-INITIALIZATION.\n    PERFORM C000-READ-CUSTOMER-DATA.\n    IF SQL-CODE-VAL = 0\n        PERFORM D000-PROCESS-PII-DATA\n        PERFORM E000-LOG-TO-MQ\n        PERFORM F000-SEND-CICS-MAP\n    ELSE\n        PERFORM G000-HANDLE-ERROR\n    END-IF.\n    PERFORM H000-TERMINATION.\n    GOBACK.\n",
+      "calls": [
+        {
+          "type": "PERFORM",
+          "target": "B000-INITIALIZATION",
+          "thru": null
+        },
+        {
+          "type": "PERFORM",
+          "target": "C000-READ-CUSTOMER-DATA",
+          "thru": null
+        },
+        {
+          "type": "PERFORM",
+          "target": "D000-PROCESS-PII-DATA",
+          "thru": null
+        },
+        {
+          "type": "PERFORM",
+          "target": "E000-LOG-TO-MQ",
+          "thru": null
+        },
+        {
+          "type": "PERFORM",
+          "target": "F000-SEND-CICS-MAP",
+          "thru": null
+        },
+        {
+          "type": "PERFORM",
+          "target": "G000-HANDLE-ERROR",
+          "thru": null
+        },
+        {
+          "type": "PERFORM",
+          "target": "H000-TERMINATION",
+          "thru": null
+        }
+      ],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [],
+      "vsam": [],
+      "moves": []
+    },
+    "B000-INITIALIZATION": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 54,
+      "end_line": 63,
+      "content": "    MOVE SPACES TO CUSTOMER-RECORD.\n    MOVE 0 TO SQL-CODE-VAL.\n    ACCEPT WS-SYS-DATE FROM DATE.\n    OPEN INPUT CUSTFILE.\n    IF VSAM-STATUS NOT = '00'\n        MOVE VSAM-STATUS TO VSAM-FEEDBACK\n        PERFORM G000-HANDLE-ERROR\n    END-IF.\n",
+      "calls": [
+        {
+          "type": "PERFORM",
+          "target": "G000-HANDLE-ERROR",
+          "thru": null
+        }
+      ],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [],
+      "vsam": [],
+      "moves": [
+        {
+          "source": "SPACES",
+          "destination": "CUSTOMER-RECORD"
+        },
+        {
+          "source": "0",
+          "destination": "SQL-CODE-VAL"
+        },
+        {
+          "source": "VSAM-STATUS",
+          "destination": "VSAM-FEEDBACK"
+        },
+        {
+          "source": "VSAM-STATUS",
+          "destination": "PERFORM"
+        },
+        {
+          "source": "VSAM-STATUS",
+          "destination": "G000-HANDLE-ERROR"
+        },
+        {
+          "source": "VSAM-STATUS",
+          "destination": "END-IF"
+        }
+      ]
+    },
+    "C000-READ-CUSTOMER-DATA": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 64,
+      "end_line": 89,
+      "content": "    EXEC SQL\n        SELECT CUST_NAME, CUST_SSN, CUST_ACCOUNT_NUM\n        INTO :CUST-NAME, :CUST-SSN, :CUST-ACCOUNT-NUM\n        FROM DB2_CUST_TABLE\n        WHERE CUST_ID = :CUST-ID\n    END-EXEC.\n\n    CALL 'CBLTDLI' USING IMS-GU\n                         CUST-SEG-IO-AREA\n                         CUST-SEG-SSA.\n\n    OBTAIN FIRST CUST-RECORD-IDMS\n        WITHIN CUST-AREA-IDMS.\n\n    MOVE CUST-ID TO VSAM-CUST-KEY.\n    READ CUSTFILE\n        INVALID KEY\n            MOVE '10' TO VSAM-STATUS\n            PERFORM G000-HANDLE-ERROR\n    END-READ.\n",
+      "calls": [
+        {
+          "type": "PERFORM",
+          "target": "G000-HANDLE-ERROR",
+          "thru": null
+        }
+      ],
+      "external_calls": [],
+      "db2": [
+        {
+          "command": "SELECT",
+          "table": "DB2_CUST_TABLE",
+          "raw_sql": "SELECT CUST_NAME, CUST_SSN, CUST_ACCOUNT_NUM\n        INTO :CUST-NAME, :CUST-SSN, :CUST-ACCOUNT-NUM\n        FROM DB2_CUST_TABLE\n        WHERE CUST_ID = :CUST-ID"
+        }
+      ],
+      "ims": [
+        {
+          "function": "GU",
+          "arguments": [
+            "CUST-SEG-IO-AREA",
+            "CUST-SEG-SSA"
+          ]
+        }
+      ],
+      "idms": [
+        {
+          "verb": "OBTAIN",
+          "record": "CUST-RECORD-IDMS",
+          "area": "CUST-AREA-IDMS"
+        }
+      ],
+      "mq": [],
+      "cics": [],
+      "vsam": [
+        {
+          "operation": "READ",
+          "file_variable": "CUSTFILE"
+        }
+      ],
+      "moves": [
+        {
+          "source": "CUST-ID",
+          "destination": "VSAM-CUST-KEY"
+        }
+      ]
+    },
+    "D000-PROCESS-PII-DATA": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 90,
+      "end_line": 95,
+      "content": "    MOVE CUST-SSN TO WS-PII-LOG-SSN.\n    MOVE CUST-ACCOUNT-NUM TO WS-MQ-MSG-BUFF(10:12).\n",
+      "calls": [],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [],
+      "vsam": [],
+      "moves": [
+        {
+          "source": "CUST-SSN",
+          "destination": "WS-PII-LOG-SSN"
+        },
+        {
+          "source": "CUST-ACCOUNT-NUM",
+          "destination": "WS-MQ-MSG-BUFF"
+        }
+      ]
+    },
+    "E000-LOG-TO-MQ": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 96,
+      "end_line": 107,
+      "content": "    CALL 'MQPUT' USING MQ-HCONN\n                       MQ-HOBJ\n                       MQ-MD\n                       MQ-PMO\n                       WS-MQ-MSG-BUFF\n                       MQ-REASON-CODE.\n    IF MQ-REASON-CODE NOT = 0\n        PERFORM G000-HANDLE-ERROR\n    END-IF.\n",
+      "calls": [
+        {
+          "type": "PERFORM",
+          "target": "G000-HANDLE-ERROR",
+          "thru": null
+        }
+      ],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [
+        {
+          "call_type": "MQPUT",
+          "arguments": [
+            "MQ-HCONN",
+            "MQ-HOBJ",
+            "MQ-MD",
+            "MQ-PMO",
+            "WS-MQ-MSG-BUFF",
+            "MQ-REASON-CODE"
+          ]
+        }
+      ],
+      "cics": [],
+      "vsam": [],
+      "moves": []
+    },
+    "F000-SEND-CICS-MAP": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 108,
+      "end_line": 116,
+      "content": "    EXEC CICS SEND\n        MAP('CUSTMAP')\n        MAPSET('CUSTSET')\n        FROM(CUSTOMER-RECORD)\n        ERASE\n    END-CICS.\n",
+      "calls": [],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [
+        {
+          "verb": "SEND MAP('CUSTMAP')",
+          "map": "CUSTMAP",
+          "mapset": "CUSTSET",
+          "raw_cics": "SEND MAP('CUSTMAP') MAPSET('CUSTSET') FROM(CUSTOMER-RECORD) ERASE"
+        }
+      ],
+      "vsam": [],
+      "moves": []
+    },
+    "G000-HANDLE-ERROR": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 117,
+      "end_line": 121,
+      "content": "    DISPLAY 'ERROR OCCURRED. SQL-CODE=' SQL-CODE-VAL\n    DISPLAY 'VSAM-STATUS=' VSAM-STATUS\n    MOVE 'AN ERROR WAS ENCOUNTERED IN PROCESSING' TO ERR-MSG.\n",
+      "calls": [],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [],
+      "vsam": [],
+      "moves": []
+    },
+    "H000-TERMINATION": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 122,
+      "end_line": 124,
+      "content": "    CLOSE CUSTFILE.\n",
+      "calls": [],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [],
+      "vsam": [],
+      "moves": []
+    },
+    "X999-DEAD-PARAGRAPH": {
+      "section": "A000-MAIN-PROCESSING",
+      "start_line": 125,
+      "end_line": 128,
+      "content": "    DISPLAY 'THIS IS DEAD CODE'\n    MOVE 'DEAD' TO WS-MQ-MSG-BUFF.",
+      "calls": [],
+      "external_calls": [],
+      "db2": [],
+      "ims": [],
+      "idms": [],
+      "mq": [],
+      "cics": [],
+      "vsam": [],
+      "moves": []
+    }
+  },
+  "paragraph_order": [
+    "PROC-ENTRY",
+    "B000-INITIALIZATION",
+    "C000-READ-CUSTOMER-DATA",
+    "D000-PROCESS-PII-DATA",
+    "E000-LOG-TO-MQ",
+    "F000-SEND-CICS-MAP",
+    "G000-HANDLE-ERROR",
+    "H000-TERMINATION",
+    "X999-DEAD-PARAGRAPH"
+  ],
+  "analysis": {
+    "call_graph": {
+      "PROC-ENTRY": [
+        "B000-INITIALIZATION",
+        "C000-READ-CUSTOMER-DATA",
+        "D000-PROCESS-PII-DATA",
+        "E000-LOG-TO-MQ",
+        "F000-SEND-CICS-MAP",
+        "G000-HANDLE-ERROR",
+        "H000-TERMINATION"
+      ],
+      "B000-INITIALIZATION": [
+        "G000-HANDLE-ERROR"
+      ],
+      "C000-READ-CUSTOMER-DATA": [
+        "G000-HANDLE-ERROR"
+      ],
+      "D000-PROCESS-PII-DATA": [],
+      "E000-LOG-TO-MQ": [
+        "G000-HANDLE-ERROR"
+      ],
+      "F000-SEND-CICS-MAP": [],
+      "G000-HANDLE-ERROR": [],
+      "H000-TERMINATION": [],
+      "X999-DEAD-PARAGRAPH": []
+    },
+    "unreachable_paragraphs": [
+      "X999-DEAD-PARAGRAPH"
+    ],
+    "pii_variables": {
+      "CUST-NAME": "Declared definition (from copybook CUSTOMER-RECORD)",
+      "CUST-EMAIL": "Declared definition (from copybook CUSTOMER-RECORD)",
+      "CUST-ADDRESS": "Declared definition (from copybook CUSTOMER-RECORD)",
+      "CUST-ACCOUNT-NUM": "Declared definition (from copybook CUSTOMER-RECORD)",
+      "CUST-PHONE": "Declared definition (from copybook CUSTOMER-RECORD)",
+      "WS-PII-LOG-SSN": "Declared definition",
+      "WS-MQ-MSG-BUFF": "Tainted in D000-PROCESS-PII-DATA from CUST-ACCOUNT-NUM",
+      "CUST-SSN": "Declared definition (from copybook CUSTOMER-RECORD)"
+    },
+    "pii_flows": [
+      {
+        "source": "CUST-ACCOUNT-NUM",
+        "destination": "WS-MQ-MSG-BUFF",
+        "paragraph": "D000-PROCESS-PII-DATA",
+        "statement": "MOVE CUST-ACCOUNT-NUM TO WS-MQ-MSG-BUFF"
+      }
+    ],
+    "pii_egress_points": [
+      {
+        "paragraph": "C000-READ-CUSTOMER-DATA",
+        "type": "DB2 SQL",
+        "destination": "Table: DB2_CUST_TABLE (SELECT)",
+        "variable": "CUST-NAME",
+        "details": "PII variable CUST-NAME passed to SQL: SELECT CUST_NAME, CUST_SSN, CUST_ACCOUNT_NUM\n        INTO :CUST-NAME, :CUST-SSN, :CUST-ACCOUNT-NUM\n        FROM DB2_CUST_TABLE\n        WHERE CUST_ID = :CUST-ID"
+      },
+      {
+        "paragraph": "C000-READ-CUSTOMER-DATA",
+        "type": "DB2 SQL",
+        "destination": "Table: DB2_CUST_TABLE (SELECT)",
+        "variable": "CUST-ACCOUNT-NUM",
+        "details": "PII variable CUST-ACCOUNT-NUM passed to SQL: SELECT CUST_NAME, CUST_SSN, CUST_ACCOUNT_NUM\n        INTO :CUST-NAME, :CUST-SSN, :CUST-ACCOUNT-NUM\n        FROM DB2_CUST_TABLE\n        WHERE CUST_ID = :CUST-ID"
+      },
+      {
+        "paragraph": "C000-READ-CUSTOMER-DATA",
+        "type": "DB2 SQL",
+        "destination": "Table: DB2_CUST_TABLE (SELECT)",
+        "variable": "CUST-SSN",
+        "details": "PII variable CUST-SSN passed to SQL: SELECT CUST_NAME, CUST_SSN, CUST_ACCOUNT_NUM\n        INTO :CUST-NAME, :CUST-SSN, :CUST-ACCOUNT-NUM\n        FROM DB2_CUST_TABLE\n        WHERE CUST_ID = :CUST-ID"
+      },
+      {
+        "paragraph": "E000-LOG-TO-MQ",
+        "type": "IBM MQ",
+        "destination": "MQ queue via MQPUT",
+        "variable": "WS-MQ-MSG-BUFF",
+        "details": "PII buffer WS-MQ-MSG-BUFF transmitted to MQ"
+      }
+    ]
+  }
+}

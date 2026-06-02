@@ -1,8 +1,8 @@
       ******************************************************************
-      * Program     : CBACT02C.CBL                                      
+      * Program     : CBACT03C.CBL                                      
       * Application : CardDemo                                          
-      * Type        : BATCH COBOL Program                               
-      * Function    : Read and print card data file.                    
+      * Type        : BATCH COBOL Program                                
+      * Function    : Read and print account cross reference data file.     
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.                   
       * All Rights Reserved.                                            
@@ -20,32 +20,32 @@
       * language governing permissions and limitations under the License
       ******************************************************************
        IDENTIFICATION DIVISION.                                                 
-       PROGRAM-ID.    CBACT02C.                                                 
+       PROGRAM-ID.    CBACT03C.                                                 
        AUTHOR.        AWS.                                                      
                                                                                 
        ENVIRONMENT DIVISION.                                                    
        INPUT-OUTPUT SECTION.                                                    
        FILE-CONTROL.                                                            
-           SELECT CARDFILE-FILE ASSIGN TO   CARDFILE                            
+           SELECT XREFFILE-FILE ASSIGN TO   XREFFILE                            
                   ORGANIZATION IS INDEXED                                       
                   ACCESS MODE  IS SEQUENTIAL                                    
-                  RECORD KEY   IS FD-CARD-NUM                                   
-                  FILE STATUS  IS CARDFILE-STATUS.                              
+                  RECORD KEY   IS FD-XREF-CARD-NUM                              
+                  FILE STATUS  IS XREFFILE-STATUS.                              
       *                                                                         
        DATA DIVISION.                                                           
        FILE SECTION.                                                            
-       FD  CARDFILE-FILE.                                                       
-       01  FD-CARDFILE-REC.                                                     
-           05 FD-CARD-NUM                       PIC X(16).                      
-           05 FD-CARD-DATA                      PIC X(134).                     
+       FD  XREFFILE-FILE.                                                       
+       01  FD-XREFFILE-REC.                                                     
+           05 FD-XREF-CARD-NUM                  PIC X(16).                      
+           05 FD-XREF-DATA                      PIC X(34).                      
                                                                                 
        WORKING-STORAGE SECTION.                                                 
                                                                                 
       *****************************************************************         
-       COPY CVACT02Y.                                                           
-       01  CARDFILE-STATUS.                                                     
-           05  CARDFILE-STAT1      PIC X.                                       
-           05  CARDFILE-STAT2      PIC X.                                       
+       COPY CVACT03Y.                                                           
+       01  XREFFILE-STATUS.                                                     
+           05  XREFFILE-STAT1      PIC X.                                       
+           05  XREFFILE-STAT2      PIC X.                                       
                                                                                 
        01  IO-STATUS.                                                           
            05  IO-STAT1            PIC X.                                       
@@ -68,34 +68,34 @@
                                                                                 
       *****************************************************************         
        PROCEDURE DIVISION.                                                      
-           DISPLAY 'START OF EXECUTION OF PROGRAM CBACT02C'.                    
-           PERFORM 0000-CARDFILE-OPEN.                                          
+           DISPLAY 'START OF EXECUTION OF PROGRAM CBACT03C'.                    
+           PERFORM 0000-XREFFILE-OPEN.                                          
                                                                                 
            PERFORM UNTIL END-OF-FILE = 'Y'                                      
                IF  END-OF-FILE = 'N'                                            
-                   PERFORM 1000-CARDFILE-GET-NEXT                               
+                   PERFORM 1000-XREFFILE-GET-NEXT                               
                    IF  END-OF-FILE = 'N'                                        
-                       DISPLAY CARD-RECORD                                      
+                       DISPLAY CARD-XREF-RECORD                                 
                    END-IF                                                       
                END-IF                                                           
            END-PERFORM.                                                         
                                                                                 
-           PERFORM 9000-CARDFILE-CLOSE.                                         
+           PERFORM 9000-XREFFILE-CLOSE.                                         
                                                                                 
-           DISPLAY 'END OF EXECUTION OF PROGRAM CBACT02C'.                      
+           DISPLAY 'END OF EXECUTION OF PROGRAM CBACT03C'.                      
                                                                                 
            GOBACK.                                                              
                                                                                 
       *****************************************************************         
       * I/O ROUTINES TO ACCESS A KSDS, VSAM DATA SET...               *         
       *****************************************************************         
-       1000-CARDFILE-GET-NEXT.                                                  
-           READ CARDFILE-FILE INTO CARD-RECORD.                                 
-           IF  CARDFILE-STATUS = '00'                                           
+       1000-XREFFILE-GET-NEXT.                                                  
+           READ XREFFILE-FILE INTO CARD-XREF-RECORD.                            
+           IF  XREFFILE-STATUS = '00'                                           
                MOVE 0 TO APPL-RESULT                                            
-      *        DISPLAY CARD-RECORD                                              
+               DISPLAY CARD-XREF-RECORD                                         
            ELSE                                                                 
-               IF  CARDFILE-STATUS = '10'                                       
+               IF  XREFFILE-STATUS = '10'                                       
                    MOVE 16 TO APPL-RESULT                                       
                ELSE                                                             
                    MOVE 12 TO APPL-RESULT                                       
@@ -107,18 +107,18 @@
                IF  APPL-EOF                                                     
                    MOVE 'Y' TO END-OF-FILE                                      
                ELSE                                                             
-                   DISPLAY 'ERROR READING CARDFILE'                             
-                   MOVE CARDFILE-STATUS TO IO-STATUS                            
+                   DISPLAY 'ERROR READING XREFFILE'                             
+                   MOVE XREFFILE-STATUS TO IO-STATUS                            
                    PERFORM 9910-DISPLAY-IO-STATUS                               
                    PERFORM 9999-ABEND-PROGRAM                                   
                END-IF                                                           
            END-IF                                                               
            EXIT.                                                                
       *---------------------------------------------------------------*         
-       0000-CARDFILE-OPEN.                                                      
+       0000-XREFFILE-OPEN.                                                      
            MOVE 8 TO APPL-RESULT.                                               
-           OPEN INPUT CARDFILE-FILE                                             
-           IF  CARDFILE-STATUS = '00'                                           
+           OPEN INPUT XREFFILE-FILE                                             
+           IF  XREFFILE-STATUS = '00'                                           
                MOVE 0 TO APPL-RESULT                                            
            ELSE                                                                 
                MOVE 12 TO APPL-RESULT                                           
@@ -126,17 +126,17 @@
            IF  APPL-AOK                                                         
                CONTINUE                                                         
            ELSE                                                                 
-               DISPLAY 'ERROR OPENING CARDFILE'                                 
-               MOVE CARDFILE-STATUS TO IO-STATUS                                
+               DISPLAY 'ERROR OPENING XREFFILE'                                 
+               MOVE XREFFILE-STATUS TO IO-STATUS                                
                PERFORM 9910-DISPLAY-IO-STATUS                                   
                PERFORM 9999-ABEND-PROGRAM                                       
            END-IF                                                               
            EXIT.                                                                
       *---------------------------------------------------------------*         
-       9000-CARDFILE-CLOSE.                                                     
+       9000-XREFFILE-CLOSE.                                                     
            ADD 8 TO ZERO GIVING APPL-RESULT.                                    
-           CLOSE CARDFILE-FILE                                                  
-           IF  CARDFILE-STATUS = '00'                                           
+           CLOSE XREFFILE-FILE                                                  
+           IF  XREFFILE-STATUS = '00'                                           
                SUBTRACT APPL-RESULT FROM APPL-RESULT                            
            ELSE                                                                 
                ADD 12 TO ZERO GIVING APPL-RESULT                                
@@ -144,8 +144,8 @@
            IF  APPL-AOK                                                         
                CONTINUE                                                         
            ELSE                                                                 
-               DISPLAY 'ERROR CLOSING CARDFILE'                                 
-               MOVE CARDFILE-STATUS TO IO-STATUS                                
+               DISPLAY 'ERROR CLOSING XREFFILE'                                 
+               MOVE XREFFILE-STATUS TO IO-STATUS                                
                PERFORM 9910-DISPLAY-IO-STATUS                                   
                PERFORM 9999-ABEND-PROGRAM                                       
            END-IF                                                               

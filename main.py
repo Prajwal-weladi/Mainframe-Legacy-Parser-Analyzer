@@ -1,9 +1,9 @@
 import argparse
 import json
 import os
-from cobol_parser import COBOLParser
-from analyzer import COBOLAnalyzer
-from doc_generator import COBOLDocumentationGenerator
+from src.cobol_parser import COBOLParser
+from src.analyzer import COBOLAnalyzer
+from src.doc_generator import COBOLDocumentationGenerator
 
 def main():
     parser = argparse.ArgumentParser(description="COBOL Source Parser, Taint Analyzer, and Technical Document Generator")
@@ -55,10 +55,12 @@ def main():
 
     # Step 3: Generate Document
     print("[3/4] Running documentation generator using local Ollama model...")
+    output_dir = os.path.dirname(os.path.abspath(args.output_doc))
     doc_gen = COBOLDocumentationGenerator(
         metadata=analyzed_metadata,
         ollama_url=args.ollama_url,
-        ollama_model=args.ollama_model
+        ollama_model=args.ollama_model,
+        output_dir=output_dir
     )
     documentation = doc_gen.generate_documentation()
 

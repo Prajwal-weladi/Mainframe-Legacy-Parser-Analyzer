@@ -6,11 +6,11 @@ from typing import List, Optional, Union
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from cobol_parser import COBOLParser
-from analyzer import COBOLAnalyzer
-from doc_generator import COBOLDocumentationGenerator
-from pdf_converter import COBOLPDFConverter
-from workspace_analyzer import WorkspaceAnalyzer
+from src.cobol_parser import COBOLParser
+from src.analyzer import COBOLAnalyzer
+from src.doc_generator import COBOLDocumentationGenerator
+from src.pdf_converter import COBOLPDFConverter
+from src.workspace_analyzer import WorkspaceAnalyzer
 
 app = FastAPI(title="COBOL Analyst Web Service", version="1.0.0")
 
@@ -89,7 +89,8 @@ async def run_analysis_pipeline(
         doc_gen = COBOLDocumentationGenerator(
             metadata=analyzed_metadata,
             ollama_url=ollama_url,
-            ollama_model=ollama_model
+            ollama_model=ollama_model,
+            output_dir=session_dir
         )
         markdown_doc = doc_gen.generate_documentation()
 

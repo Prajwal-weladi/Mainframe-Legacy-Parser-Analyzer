@@ -1,13 +1,53 @@
 import json
 import urllib.request
 import urllib.error
+import urllib.parse
 import re
+import os
 
 class COBOLDocumentationGenerator:
-    def __init__(self, metadata, ollama_url="http://localhost:11434", ollama_model="llama3:latest"):
+    def __init__(self, metadata, ollama_url="http://localhost:11434", ollama_model="llama3:latest", output_dir=None):
         self.metadata = metadata
         self.ollama_url = ollama_url
         self.ollama_model = ollama_model
+        self.output_dir = output_dir or os.getcwd()
+
+    def _render_mermaid_to_image(self, mermaid_code, filename):
+        # Clean up the code (remove code block wrappers if any)
+        code_lines = []
+        for line in mermaid_code.split('\n'):
+            if not line.strip().startswith('```') and not line.strip().startswith('%%'):
+                code_lines.append(line)
+        cleaned_code = '\n'.join(code_lines).strip()
+        
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Call Kroki's POST API for Mermaid diagram rendering to PNG
+                url = "https://kroki.io/mermaid/png"
+                print(f"[*] Requesting static diagram render from Kroki.io API: {filename} (attempt {attempt + 1})")
+                
+                req = urllib.request.Request(
+                    url,
+                    data=cleaned_code.encode("utf-8"),
+                    headers={'Content-Type': 'text/plain', 'User-Agent': 'Mozilla/5.0'}
+                )
+                
+                # Ensure output directory exists
+                os.makedirs(self.output_dir, exist_ok=True)
+                output_path = os.path.join(self.output_dir, filename)
+                
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    with open(output_path, "wb") as f:
+                        f.write(response.read())
+                print(f"[+] Diagram saved to local path: {output_path}")
+                return output_path
+            except Exception as e:
+                print(f"Warning: Failed to render Mermaid diagram to image '{filename}' via Kroki (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+        return None
 
     def _query_ollama(self, prompt, fallback_text):
         """
@@ -104,6 +144,48 @@ class COBOLDocumentationGenerator:
         ims_str = "\n".join(f"- Segment/IO Area: `{s}`" for s in ims_segs) if ims_segs else "- No IMS segments referenced."
         idms_str = "\n".join(f"- Record: `{r}`" for r in idms_recs) if idms_recs else "- No IDMS records referenced."
         
+        copybooks = sorted(list(set(v["source_copybook"] for v in self.metadata["variables"] if v["source_copybook"])))
+        ext_calls = sorted(list(set(ext["program"] for p in self.metadata["paragraphs"].values() for ext in p["external_calls"])))
+        cics_maps = sorted(list(set(cics["map"] for p in self.metadata["paragraphs"].values() for cics in p["cics"] if cics["map"])))
+        cics_mapsets = sorted(list(set(cics["mapset"] for p in self.metadata["paragraphs"].values() for cics in p["cics"] if cics["mapset"])))
+        files = self.metadata["files"]
+
+        dep_lines = []
+        dep_lines.append("## 2.4 External Module and Copybook Dependencies")
+        dep_lines.append("The program relies on the following external files, copybooks, subprograms, and mapsets:")
+        
+        if copybooks:
+            dep_lines.append("\n### Copybooks (Data Structures)")
+            for cp in copybooks:
+                dep_lines.append(f"- `{cp}`: Imported layout definition defining record formats.")
+        else:
+            dep_lines.append("\n- No external copybook definitions referenced directly.")
+
+        if ext_calls:
+            dep_lines.append("\n### External Subprograms")
+            for ext in ext_calls:
+                dep_lines.append(f"- `{ext}`: Called subroutine executing external business logic or utilities.")
+        else:
+            dep_lines.append("\n- No external program calls detected in procedure division.")
+
+        if files:
+            dep_lines.append("\n### VSAM and File Resources")
+            for f in files:
+                dep_lines.append(f"- `{f['variable']}` (Dataset/DD: `{f['dataset']}`): Logical file reference for storage/transfer operations.")
+        else:
+            dep_lines.append("\n- No local or physical file datasets referenced.")
+
+        if cics_maps or cics_mapsets:
+            dep_lines.append("\n### CICS Screens and Maps")
+            for cmap in cics_maps:
+                dep_lines.append(f"- Map `{cmap}`: User interface screen layout.")
+            for cmapset in cics_mapsets:
+                dep_lines.append(f"- Mapset `{cmapset}`: Set of screen map configurations.")
+        else:
+            dep_lines.append("\n- No CICS terminal map dependencies detected.")
+
+        dep_str = "\n".join(dep_lines)
+
         return (
             f"# 2. Database Details\n\n"
             f"## 2.1 DB2 Tables\n"
@@ -114,7 +196,8 @@ class COBOLDocumentationGenerator:
             f"{ims_str}\n\n"
             f"## 2.3 IDMS Records\n"
             f"The program retrieves or modifies the following IDMS database records:\n"
-            f"{idms_str}"
+            f"{idms_str}\n\n"
+            f"{dep_str}"
         )
 
     def _gen_section_3(self):
@@ -181,14 +264,33 @@ class COBOLDocumentationGenerator:
         comp_diagram = "\n".join(mermaid_comp)
         flow_diagram = "\n".join(mermaid_flow)
         
+        # Render static diagrams to embed in report
+        comp_img_path = self._render_mermaid_to_image(comp_diagram, "single_component_diagram.png")
+        import time
+        time.sleep(2)
+        flow_img_path = self._render_mermaid_to_image(flow_diagram, "single_control_flow_diagram.png")
+        
+        # Build image links using forward slashes and absolute paths
+        if comp_img_path:
+            abs_comp_path = os.path.abspath(comp_img_path).replace("\\", "/")
+            comp_display = f"![Component Diagram](file:///{abs_comp_path})"
+        else:
+            comp_display = comp_diagram
+            
+        if flow_img_path:
+            abs_flow_path = os.path.abspath(flow_img_path).replace("\\", "/")
+            flow_display = f"![Control Flow Diagram](file:///{abs_flow_path})"
+        else:
+            flow_display = flow_diagram
+
         return (
             f"# 3. System Architecture\n\n"
             f"## 3.1 Component Diagram\n"
             f"The diagram below outlines the external interfaces and components interfacing with the `{prog_id}` program:\n\n"
-            f"{comp_diagram}\n\n"
+            f"{comp_display}\n\n"
             f"## 3.2 Control Flow Diagram\n"
             f"The diagram below shows the control flow and call relationships between the internal paragraphs of the program:\n\n"
-            f"{flow_diagram}"
+            f"{flow_display}"
         )
 
     def _gen_section_4(self):
@@ -210,6 +312,21 @@ class COBOLDocumentationGenerator:
             struct_table.append(f"| `{para_name}` | {p['start_line']} | {p['end_line']} | {p['section']} | {desc} |")
         
         struct_str = "\n".join(struct_table)
+
+        ws_vars = [v for v in self.metadata["variables"] if v["section"] == "WORKING-STORAGE"]
+        lk_vars = [v for v in self.metadata["variables"] if v["section"] == "LINKAGE"]
+        
+        ws_lines = ["| Variable Name | Level | PIC Clause | Initial Value | Source Copybook |", "| --- | --- | --- | --- | --- |"]
+        for v in ws_vars[:30]:
+            ws_lines.append(f"| `{v['name']}` | {v['level']} | `{v['pic'] or 'N/A'}` | `{v['value'] or 'N/A'}` | `{v['source_copybook'] or 'Local'}` |")
+        if len(ws_vars) > 30:
+            ws_lines.append(f"| ... | ... | ... | ... | (and {len(ws_vars) - 30} more variables) |")
+        ws_table_str = "\n".join(ws_lines) if ws_vars else "No variables defined in WORKING-STORAGE SECTION."
+        
+        lk_lines = ["| Variable Name | Level | PIC Clause | Source Copybook |", "| --- | --- | --- | --- |"]
+        for v in lk_vars:
+            lk_lines.append(f"| `{v['name']}` | {v['level']} | `{v['pic'] or 'N/A'}` | `{v['source_copybook'] or 'Local'}` |")
+        lk_table_str = "\n".join(lk_lines) if lk_vars else "No variables defined in LINKAGE SECTION (i.e. no parameters received from calling programs)."
         
         paragraphs_summary = []
         for name in self.metadata["paragraph_order"]:
@@ -221,21 +338,31 @@ class COBOLDocumentationGenerator:
         prompt = (
             f"Based on the following paragraph structural details of the COBOL program '{self.metadata['program_id']}':\n"
             f"{summary_str}\n\n"
+            f"Write a detailed software engineering walkthrough explaining the 'logic behind' this program's execution.\n"
             f"Write exactly the following subsections:\n"
             f"4.2.1 Overall Program Logic\n"
+            f"Explain in depth the overall execution flow. Cover:\n"
+            f"- Initialization: setting indicators, opening files, executing initial paragraphs.\n"
+            f"- Main Processing: how the program loops, fetches database/file records, handles data verification, and performs business logic.\n"
+            f"- Termination: closing file/database resources, setting return codes (GOBACK/STOP RUN), and exiting.\n\n"
             f"4.2.2 Key Algorithmic Details\n"
-            f"Explain how the program initializes, processes files/databases, executes conditional loops, and handles shutdown. "
+            f"Explain the logic behind the conditional flow branchings and data transformations, detailing:\n"
+            f"- DB2/IMS query handling and paragraph-level coordination.\n"
+            f"- Taint propagation or data movements (e.g. MOVE commands mapping fields to output structures/buffers/CICS maps).\n"
+            f"- Error handling flow: how SQLCODE or file status errors are checked and handled (e.g. error display, exit routines).\n\n"
             f"Output only the markdown text of these subsections, starting directly with '4.2.1 Overall Program Logic'. Do not include wrapping comments or markdown block wrappers."
         )
         
         fallback = (
             f"### 4.2.1 Overall Program Logic\n"
-            f"The program follows a standard mainframe control logic: initialization, sequential data processing, and termination. "
-            f"It first reads configuration arguments, initializes internal variables, opens VSAM files, and loops through customer records. "
-            f"If queries succeed, it executes business logic and stages variables. If errors occur, it logs them and exits.\n\n"
+            f"The `{self.metadata['program_id']}` program logic coordinates execution through distinct structural stages:\n"
+            f"1. **Initialization**: The program prepares internal processing variables, initializes database cursor areas, and opens any referenced files or screen resources. It establishes base variables needed for loop processing.\n"
+            f"2. **Main Processing Loop**: It reads input data sequentially (either via files or cursor fetches). For each item: it performs validations, retrieves related entity details from DB2 tables/IMS databases, propagates key data elements, and handles business updates or queuing operations.\n"
+            f"3. **Termination and Shutdown**: Once input limits or end-of-file indicators are hit, the program cleanly terminates. It closes all active database cursors, releases VSAM files, executes final output prints/displays, and runs GOBACK/STOP RUN.\n\n"
             f"### 4.2.2 Key Algorithmic Details\n"
-            f"- **Flow branching**: An `IF` evaluation on `SQL-CODE-VAL` decides if the program routes through PII processing (`D000-PROCESS-PII-DATA`), queue transmitting (`E000-LOG-TO-MQ`), and map transmission (`F000-SEND-CICS-MAP`), or immediately triggers error logging (`G000-HANDLE-ERROR`).\n"
-            f"- **Taint Propagation**: It maps data from DB2/IMS records to layout records and pushes them through a formatted MQ buffer buffer sequentially."
+            f"- **Branching & Decisions**: The control path is heavily governed by conditional branching checking SQL execution feedback (SQLCODE) or VSAM file statuses. For example, successful reads proceed to data manipulation while failures trigger specific error recovery paragraphs.\n"
+            f"- **Data Translation & Formatting**: Variables parsed from database sources are mapped to intermediate fields, formatted according to PIC specifications, and stored in target records for output (e.g. IBM MQ buffers or CICS map displays).\n"
+            f"- **Fault Tolerance**: The logic implements dedicated paragraph paths for error capture, logging, and application recovery to prevent uncontrolled program abends."
         )
         
         narrative_alg = self._query_ollama(prompt, fallback)
@@ -331,8 +458,14 @@ class COBOLDocumentationGenerator:
         return (
             f"# 4. Detailed Design\n\n"
             f"## 4.1 Program Structure\n"
+            f"### 4.1.1 Paragraph and Section Architecture\n"
             f"The following table details all sections and paragraphs defined in the program:\n\n"
             f"{struct_str}\n\n"
+            f"### 4.1.2 Data Division Layout and Key Variable Structures\n"
+            f"#### WORKING-STORAGE SECTION Variables\n"
+            f"{ws_table_str}\n\n"
+            f"#### LINKAGE SECTION Variables (Input/Output Parameters)\n"
+            f"{lk_table_str}\n\n"
             f"## 4.2 Algorithms\n"
             f"{narrative_alg}\n\n"
             f"## 4.3 Input/Output Specifications\n"

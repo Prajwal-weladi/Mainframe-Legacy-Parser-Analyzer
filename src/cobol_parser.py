@@ -1,6 +1,6 @@
 import re
 import os
-from preprocessor import COBOLPreprocessor
+from .preprocessor import COBOLPreprocessor
 
 class COBOLParser:
     def __init__(self, copybook_dir=None):
